@@ -2,15 +2,15 @@
 
 **Inventário de ativos de TI, gestão de vulnerabilidades e análise de risco com álgebra linear.**
 
-Projeto acadêmico desenvolvido em Python no âmbito do **Trabalho 02**, com evolução das Sprints 3 e 4. A aplicação reúne orientação a objetos, persistência por **SQLite com SQLAlchemy** no ambiente Docker validado, suporte histórico a JSON, integração com a **National Vulnerability Database (NVD)**, uma API REST construída com **FastAPI**, interface web e execução local em **Docker**.
+Projeto acadêmico desenvolvido em Python no âmbito do **Trabalho 02 — Sprints 3, 4 e 5**, como evolução do inventário procedural do Trabalho 1. A aplicação reúne orientação a objetos, persistência por **SQLite com SQLAlchemy**, migrações com **Alembic**, suporte legado a JSON, integração com a **National Vulnerability Database (NVD)**, análise de risco por álgebra linear, uma API REST construída com **FastAPI**, interface web e execução por **Docker Compose** em ambiente local e em servidor Linux da faculdade.
 
 A interface, chamada **A Vigília**, utiliza uma identidade visual inspirada na atmosfera de *Bloodborne*: os **ativos** são os recursos a proteger, as **vulnerabilidades** representam as “feras” identificadas e o **Diário da Caçada** registra as ações observadas pela API. A linguagem visual é temática; os cálculos e as regras de negócio são implementações técnicas independentes dessa analogia.
 
-> **Estado do projeto — 12/11/2026:** integração local de API, frontend e Docker validada. A API foi testada com **SQLite ativo** (`CYBER_RISK_STORAGE=sqlite`) e confirmou persistência de ativos, vulnerabilidades e histórico após recriação do container. **71 testes automatizados foram aprovados** em container Docker temporário configurado com `CYBER_RISK_STORAGE=json` (`71 passed, 1 warning`, em 4,18 s). Esse resultado valida a suíte nessa configuração; o modo SQLite foi verificado separadamente por operações reais da API e testes de persistência, não por essa execução do pytest. A implantação no servidor da faculdade e a comprovação de disponibilidade contínua por 24 horas não foram demonstradas por esses testes. Este é um protótipo acadêmico, não uma plataforma pronta para produção.
+> **Estado documentado — 23/11/2026:** a aplicação foi implantada no servidor Linux da faculdade (`10.0.99.150`) com Docker e SQLite persistente. Em **18/11/2026, às 21h29min22s (UTC−3)**, o relatório de evidências registrou **24 horas e 18 minutos de execução do container**, `RestartCount=0`, estado `healthy` e HTTP `200` em `/health`, cumprindo o critério operacional de tempo de execução observado. O inventário migrado continha **6 ativos, 7 vulnerabilidades e 2 dependências**. Posteriormente, após alterar a publicação para `10.0.99.150:2202:8000`, foi relatado um teste de acesso à interface **a partir de outro computador da faculdade, sem túnel SSH**. Esse teste não equivale a monitoramento contínuo do endpoint e não confirma o estado do servidor em 23/11. A suíte automatizada teve **71 testes aprovados em container isolado com persistência JSON**; a persistência SQLite foi validada separadamente. **O projeto segue sendo protótipo acadêmico, sem login/autorização de usuários, e não deve receber dados sensíveis nem ser exposto fora do ambiente institucional sem proteção.**
 
 ![Interface web A Vigília — painel de inventário do Cyber Risk Engine](docs/imagens/visao-geral.png)
 
-<sub>Captura real da aplicação executada com Docker durante a validação local da Sprint 4. Os quantitativos exibidos representam aquele inventário demonstrativo, não dados coletados automaticamente.</sub>
+<sub>Captura da interface na fase de validação local. Os números da imagem não necessariamente correspondem ao inventário restaurado no servidor durante a Sprint 5.</sub>
 
 **Para começar:** leia [Como funciona](#comece-por-aqui-como-funciona-o-cyber-risk-engine), acompanhe a [demonstração curta](#demonstração-curta-roteiro-de-5-minutos) ou siga o [estudo de caso completo](#estudo-de-caso-uma-vulnerabilidade-do-cadastro-à-reavaliação).
 
@@ -26,6 +26,9 @@ A interface, chamada **A Vigília**, utiliza uma identidade visual inspirada na 
 - [Manual da interface CLI](#manual-da-interface-cli)
 - [Instalação e execução local](#instalação-e-execução-local)
 - [Execução com Docker](#execução-com-docker)
+- [Implantação da Sprint 5 no servidor da faculdade](#implantação-da-sprint-5-no-servidor-da-faculdade)
+- [Comprovação das 24 horas e evidências](#comprovação-das-24-horas-e-evidências)
+- [Migração JSON → SQLite realizada no servidor](#migração-json-sqlite-realizada-no-servidor)
 - [Modelo matemático de risco](#modelo-matemático-de-risco)
 - [Limitações científicas e operacionais do modelo de risco](#limitações-científicas-e-operacionais-do-modelo-de-risco)
 - [API REST](#api-rest)
@@ -36,6 +39,7 @@ A interface, chamada **A Vigília**, utiliza uma identidade visual inspirada na 
 - [Perguntas frequentes](#perguntas-frequentes)
 - [Glossário técnico](#glossário-técnico)
 - [Limitações e próximos passos](#limitações-e-próximos-passos)
+- [Preparação para a entrega e apresentação (novembro de 2026)](#preparação-para-a-entrega-e-apresentação-novembro-de-2026)
 - [Identidade visual e uso de mídia](#identidade-visual-e-uso-de-mídia)
 
 ## Comece por aqui: como funciona o Cyber Risk Engine
@@ -84,7 +88,8 @@ As duas reutilizam as classes de domínio e os serviços de negócio, mas **pode
 
 | Objetivo | Comando principal | Onde abrir | Inventário utilizado |
 |---|---|---|---|
-| **Experimentar via Docker** | `docker compose up --build -d` | `http://127.0.0.1:8000/ui/` | SQLite em `/dados/cyber_risk.db` no volume Docker, no ambiente validado |
+| **Docker local** | `docker compose up --build -d` (com porta publicada em `127.0.0.1:2202`) | `http://127.0.0.1:2202/ui/` | SQLite em `/dados/cyber_risk.db` no volume Docker local |
+| **Servidor da faculdade** | Container já implantado; verificar com `sudo docker compose ps` | `http://10.0.99.150:2202/ui/` **na rede autorizada**, conforme teste relatado | SQLite no volume nomeado do servidor, separado do Windows |
 | **Experimentar com Python local** | `python -m uvicorn api.app:app --host 127.0.0.1 --port 8001` | `http://127.0.0.1:8001/ui/` | Depende do modo de persistência e das variáveis configuradas antes da inicialização |
 | **Usar o terminal** | `python main.py` | O próprio PowerShell | Repositório JSON descrito na implementação original da CLI |
 
@@ -96,7 +101,7 @@ Os IDs e nomes seguintes são **somente exemplos didáticos**. Use identificador
 
 #### Passo 1 — Abrir o inventário
 
-Acesse `http://127.0.0.1:8000/ui/` se estiver utilizando Docker, ou `http://127.0.0.1:8001/ui/` se estiver utilizando Uvicorn local. Na página inicial, você verá o painel **Vigília dos Ativos**, com indicadores de ativos e vulnerabilidades. Um inventário vazio no primeiro uso **é normal**; não significa que a aplicação falhou.
+Acesse `http://127.0.0.1:2202/ui/` se estiver utilizando Docker, ou `http://127.0.0.1:8001/ui/` se estiver utilizando Uvicorn local. Na página inicial, você verá o painel **Vigília dos Ativos**, com indicadores de ativos e vulnerabilidades. Um inventário vazio no primeiro uso **é normal**; não significa que a aplicação falhou.
 
 #### Passo 2 — Cadastrar o primeiro ativo
 
@@ -245,7 +250,7 @@ sequenceDiagram
 | Calcula pontuações próprias e propagadas por dependência. | Estimativa probabilística de incidentes ou prejuízo financeiro. |
 | Registra alterações vistas pela API no Diário. | Prova imutável de auditoria, autoria ou remediação. |
 | Persiste o inventário em SQLite no Docker e preserva o volume entre recriações. | Garantia de operação multiusuário, alta disponibilidade ou transações distribuídas. |
-| Executa localmente em container e responde ao healthcheck. | Comprovação de 24 horas de uptime ou implantação no servidor acadêmico. |
+| Executa em Docker local e no servidor acadêmico e responde a `/health`. | Garantia de disponibilidade HTTP ininterrupta, alta disponibilidade ou serviço de produção. |
 
 ## Visão geral e funcionalidades
 
@@ -415,7 +420,7 @@ A captura mostra cadastro, associação e duas transições `ABERTO → EM_TRATA
 
 ![Container do Cyber Risk Engine mostrado no Docker Desktop](docs/imagens/docker-desktop.png)
 
-A aplicação é empacotada em uma imagem Docker Linux e iniciada com Docker Compose. O endereço local `http://127.0.0.1:8000/ui/` atende a interface, enquanto a API e o Diário utilizam o mesmo processo backend. A implantação remota da Sprint 5 não é demonstrada por essa imagem.
+A aplicação é empacotada em uma imagem Docker Linux e iniciada com Docker Compose. Em desenvolvimento local, a porta de host ajustada é `2202`, encaminhada à porta `8000` interna do container. A imagem desta seção é da fase local; a **implantação no servidor, o acesso remoto e as 24 horas** são documentados em seção específica, com evidências de novembro de 2026.
 
 > **Manutenção das capturas:** os arquivos de imagem ficam em `docs/imagens/`. Para atualizar uma captura no futuro, utilize o mesmo nome do arquivo e faça commit da nova imagem; não é necessário reescrever os links do README. Evite capturar dados pessoais reais, endereços privados, tokens e senhas.
 
@@ -549,7 +554,7 @@ Reabra `/ui/`, confirme os registros e consulte `/diario`. Esse procedimento pre
 - **HTML, CSS e JavaScript** — interface web, formulários e consumo assíncrono da API.
 - **SQLite + SQLAlchemy** — armazenamento relacional utilizado no ambiente Docker validado para o inventário.
 - **JSON** — formato das respostas HTTP e alternativa histórica de persistência documentada para a CLI.
-- **Diário da Caçada** — histórico de mudanças acessível pela API; persistência verificada após recriação do container (formato interno a conferir no código).
+- **Diário da Caçada** — histórico de mudanças acessível pela API; em `/dados` foi observado o arquivo `ativos_diario.jsonl` (JSONL) no servidor, preservado no volume Docker.
 - **Pytest + HTTPX / TestClient** — testes automatizados do domínio, API e módulos web.
 - **Docker e Docker Compose** — execução isolada e persistência em volume nomeado.
 - **Git e GitHub** — versionamento e trabalho por branches.
@@ -599,9 +604,9 @@ flowchart TD
 
 ### SQLAlchemy e SQLite: papéis distintos
 
-**SQLite** é o mecanismo de banco de dados relacional que guarda as informações em um arquivo. **SQLAlchemy** é a biblioteca Python usada pela camada de persistência para acessar o banco. Não são a mesma tecnologia. O teste executado confirmou a presença da tabela `ativos`, a leitura de sete registros existentes e a continuidade dos dados após a recriação do container.
+**SQLite** é o mecanismo de banco de dados relacional que guarda as informações em um arquivo. **SQLAlchemy** é a biblioteca Python usada pela camada de persistência para acessar o banco. Não são a mesma tecnologia. Os testes de 12/11 confirmaram a tabela `ativos` e a leitura de sete registros no ambiente local; **o servidor recebeu posteriormente um inventário migrado de seis ativos** e manteve a persistência em um volume Docker nomeado.
 
-A implantação atual não deve ser descrita como banco central multiusuário ou serviço independente de banco de dados: **SQLite funciona embutido na aplicação** e depende da preservação e dos backups do arquivo no volume.
+A implantação atual não deve ser descrita como servidor SQL centralizado: **SQLite funciona embutido na aplicação** e depende da preservação e dos backups do arquivo no volume. Vários navegadores podem usar a API ao mesmo tempo, mas isso não equivale a comprovar controle de concorrência ou capacidade multiusuário em produção.
 
 ### Programação orientada a objetos e padrões
 
@@ -733,16 +738,16 @@ Para uma primeira validação segura com SQLite, prefira os comandos Docker da p
 
 ## Execução com Docker
 
-Esta seção incorpora o guia anteriormente mantido em `docs/docker.md`. A aplicação web e a API FastAPI são disponibilizadas em um único serviço Compose, com publicação local em `127.0.0.1:8000`. A versão atualmente validada utiliza **SQLite + SQLAlchemy** para o inventário, com banco localizado em `/dados/cyber_risk.db`.
+Esta seção incorpora o guia anteriormente mantido em `docs/docker.md`. A aplicação web e a API FastAPI são disponibilizadas no mesmo serviço Compose; o **Uvicorn escuta na porta interna `8000`**, enquanto a **porta publicada no host é `2202`** na configuração da Sprint 5. Na faculdade, a configuração de rede usada no teste de acesso foi `10.0.99.150:2202:8000`; para executar em um computador pessoal, use um endereço local válido, como `127.0.0.1:2202:8000`, no `compose.yaml` desse computador. A versão validada utiliza **SQLite + SQLAlchemy**, com banco localizado em `/dados/cyber_risk.db`.
 
 ### Pré-requisitos e arquivos
 
 - Docker Engine ou Docker Desktop ativo, com Compose disponível.
-- `dockerfile`: constrói a imagem Python e inicia o servidor da API.
+- `Dockerfile` (ou `dockerfile` conforme a árvore da versão utilizada): constrói a imagem Python e inicia o servidor da API.
 - `.dockerignore`: evita copiar arquivos desnecessários e dados locais para o contexto da imagem.
 - `compose.yaml`: configura serviço, porta, saúde e persistência.
 
-**A configuração exata da máquina deve ser conferida em `docker compose config`.** O nome `dados_api` do volume e a porta `127.0.0.1:8000` são documentados nas etapas anteriores do projeto; os testes recentes confirmaram a porta e o banco em `/dados`.
+**A configuração exata deve ser conferida em `docker compose config`.** Na implantação da faculdade, o serviço foi identificado por `trab02_2026_2_12621cbs202_api`, a imagem por `trab02_2026_2_12621cbs202:s5` e o volume por `trab02_2026_2_12621cbs202_dados_api`. O nome e o mapeamento podem diferir em outra máquina; não copie o IP privado da faculdade para o Compose local.
 
 ### Inicializar e verificar
 
@@ -756,10 +761,10 @@ docker compose ps
 
 Quando `docker compose ps` indicar `healthy`, consulte:
 
-- **Frontend:** <http://127.0.0.1:8000/ui/>
-- **Swagger/OpenAPI:** <http://127.0.0.1:8000/docs>
-- **Inventário:** <http://127.0.0.1:8000/ativos>
-- **Saúde:** <http://127.0.0.1:8000/health>
+- **Frontend:** <http://127.0.0.1:2202/ui/>
+- **Swagger/OpenAPI:** <http://127.0.0.1:2202/docs>
+- **Inventário:** <http://127.0.0.1:2202/ativos>
+- **Saúde:** <http://127.0.0.1:2202/health>
 
 Para inspecionar os logs, sem alterar os registros:
 
@@ -779,17 +784,17 @@ docker compose exec api python -c "import os; print(os.getenv('CYBER_RISK_STORAG
 docker compose exec api python -c "import sqlite3; c=sqlite3.connect('/dados/cyber_risk.db'); print('Ativos no SQLite:', c.execute('SELECT COUNT(*) FROM ativos').fetchone()[0]); c.close()"
 ```
 
-**Resultado observado:** `sqlite` e `Ativos no SQLite: 7` antes da inclusão temporária do registro de teste. Esse comando SQL faz somente leitura; não altera o banco.
+**Resultado histórico em 12/11:** `sqlite` e `Ativos no SQLite: 7` na instalação local antes do teste. **Isso não é a contagem do servidor da Sprint 5:** após migração do inventário de origem, o servidor continha **6 ativos** (e 7 vulnerabilidades, 2 dependências). Esses comandos SQL são somente de leitura.
 
 Para consultar o inventário pela API:
 
 ```powershell
-$base = 'http://127.0.0.1:8000'
+$base = 'http://127.0.0.1:2202'
 $ativos = Invoke-RestMethod "$base/ativos"
 $ativos.Count
 ```
 
-**Resultado observado:** `7` ativos antes dos testes e novamente após a exclusão do ativo temporário.
+**Resultado histórico no Docker local em 12/11:** 7 ativos após excluir o item temporário. **No servidor, em 17–18/11**, a interface mostrou 6 ativos após a importação. Valores mudam com o inventário usado.
 
 ### Persistência ao recriar o container
 
@@ -797,12 +802,12 @@ $ativos.Count
 docker compose down
 docker compose up -d
 docker compose ps
-Invoke-RestMethod 'http://127.0.0.1:8000/ativos'
+Invoke-RestMethod 'http://127.0.0.1:2202/ativos'
 ```
 
 O procedimento acima **remove e recria container e rede, mas preserva volumes nomeados**, quando não se utiliza `-v`. Em 12/11/2026, o ativo de teste `9801`, sua vulnerabilidade `9802` marcada `CORRIGIDA` e seus eventos no Diário permaneceram consultáveis após `down` e `up -d`. Depois, o ativo temporário foi excluído e a listagem voltou a sete ativos.
 
-**Não use `docker compose down -v` para testes de reinicialização.** A opção `-v` pode remover o volume e os dados que ele contém. Persistência em volume também **não substitui backup** e não comprova disponibilidade contínua de 24 horas.
+**Não use `docker compose down -v` para testes de reinicialização.** A opção `-v` pode remover o volume e os dados que ele contém. Persistência em volume **não substitui backup**. A comprovação das 24 horas foi feita **separadamente no servidor**, pelo timestamp do container e relatório em 18/11.
 
 ### Testes automatizados e manutenção
 
@@ -822,11 +827,11 @@ docker compose logs --tail=100 api
 docker compose down
 ```
 
-**Histórico dos testes:** o antigo `docs/docker.md` reportava **34 testes aprovados** e documentava a persistência de um notebook de teste, ID `9101` (`Notebook Teste Docker`), após recriação do container no modo JSON. O README anterior registrou **45 testes aprovados** em uma etapa posterior. **Na versão atual, 71 testes passaram no modo JSON isolado** (`71 passed, 1 warning in 4.18s`). A bateria automatizada não foi executada em modo SQLite nesse teste; os comportamentos SQLite foram confirmados por operações manuais da API, consulta direta ao banco e recriação do container.
+**Histórico dos testes:** o antigo `docs/docker.md` reportava 34 testes; uma etapa posterior documentou 45. Em **12/11/2026, 71 testes passaram no modo JSON isolado** (`71 passed, 1 warning in 4.18s`). A bateria automatizada não foi executada em modo SQLite nessa sessão; SQLite foi confirmado por operações reais, consulta ao banco, migração, recuperação de registros e testes de persistência. Não confunda teste automatizado, teste manual e observação de 24 horas.
 
 ### Cuidado com o `ativos.json` antigo
 
-No modo SQLite validado, o inventário efetivo consultado pela API está no banco `/dados/cyber_risk.db`. **Não copie `ativos.json` diretamente para esse caminho** e não trate a simples cópia de um JSON para `/dados/ativos.json` como migração de dados relacional. A documentação anterior descrevia uma cópia de JSON para um volume usado pela aplicação legada; a migração JSON → SQLite exigiria procedimento de importação próprio, que não foi comprovado pelos arquivos disponibilizados.
+No modo SQLite validado, o inventário efetivo consultado pela API está no banco `/dados/cyber_risk.db`. **Não copie `ativos.json` diretamente para esse caminho** e não trate a simples cópia de um JSON para `/dados/ativos.json` como migração de dados relacional. A documentação anterior descrevia cópia de JSON usada pela aplicação legada. **Na Sprint 5 a migração JSON → SQLite foi realmente executada** com `scripts/migrar_json_para_sqlite.py`, seguida de conferência de integridade e restauração controlada no volume do servidor. Veja [Migração JSON → SQLite](#migração-json-sqlite-realizada-no-servidor).
 
 Os arquivos do volume Docker não são enviados ao GitHub e não se sincronizam automaticamente com o `ativos.json` do Windows.
 
@@ -836,7 +841,173 @@ O player pode procurar `frontend/assets/audio/laurence.mp3`, mas esse MP3 **não
 
 ### Segurança de rede
 
-A porta observada `127.0.0.1:8000->8000/tcp` limita o acesso ao próprio host. A aplicação não deve ser exposta à internet sem controles adicionais de autenticação, autorização, proteção de rede e operação. A validação local aqui documentada **não é uma implantação de produção**.
+Na Sprint 5, a configuração original restringia o host a `127.0.0.1:2202:8000`; o acesso a partir de outra estação exigia túnel SSH. Depois da comprovação das 24 horas, foi configurada a publicação na interface de rede da faculdade (`10.0.99.150:2202:8000`), e um colega conseguiu abrir a UI de outro computador sem túnel. **Não há autenticação nem autorização de usuários na aplicação**; quem alcançar a porta poderá acessar também as operações de escrita e exclusão. O `ufw` apareceu `inactive` no diagnóstico. Acesso livre não significa acesso seguro; a operação deve seguir as regras da instituição. Não exponha a internet nem use dados reais/sigilosos. Veja [Implantação da Sprint 5](#implantação-da-sprint-5-no-servidor-da-faculdade).
+
+## Implantação da Sprint 5 no servidor da faculdade
+
+### Contexto: do Docker local ao servidor Linux
+
+Na Sprint 5, o Cyber Risk Engine foi implantado em um **servidor Linux compartilhado da faculdade**, separado dos computadores Windows usados para acessar o sistema. O objetivo era demonstrar a execução em container por pelo menos 24 horas. Os comandos abaixo descrevem **o ambiente verificado entre 17 e 18/11/2026**, com a alteração de publicação de porta relatada após a comprovação das 24 horas. A situação do container em datas posteriores deve ser consultada novamente no servidor; uma tela azul ou desligamento do PC Windows **não implica que o container remoto parou**.
+
+| Item | Configuração documentada |
+|---|---|
+| Servidor Linux | Hostname `ciberseguraca`; IP institucional `10.0.99.150`, interface `ens18`, máscara `/22` |
+| Diretório de implantação | `~/trab02_2026_2_12621cbs202` |
+| Serviço Compose | `api` |
+| Container | `trab02_2026_2_12621cbs202_api` |
+| Imagem | `trab02_2026_2_12621cbs202:s5` |
+| Volume persistente | `trab02_2026_2_12621cbs202_dados_api` |
+| SQLite | `/dados/cyber_risk.db` |
+| Porta do servidor | `2202` (porta interna do FastAPI/Uvicorn: `8000`) |
+| Migração Alembic conferida | `bb919c9dadbb` |
+| Commit identificado no relatório de 24h | `287d047` |
+
+O nome do projeto/artefatos `trab02_2026_2_12621cbs202` segue a identificação de entrega da Sprint 5, enquanto o **nome do repositório GitHub permanece `cyber-risk-engine`**. Alterar o diretório do servidor, o nome do repositório e a porta são decisões diferentes.
+
+### Comandos de consulta no servidor (sem reiniciar o serviço)
+
+Entre por SSH usando **sua própria conta autorizada** e navegue para o diretório:
+
+```bash
+cd ~/trab02_2026_2_12621cbs202
+date -Is
+sudo docker compose ps
+sudo docker compose logs --tail=50 api
+curl -fsS http://10.0.99.150:2202/health
+curl -fsS http://10.0.99.150:2202/ativos | python3 -c 'import json,sys; print("Ativos:",len(json.load(sys.stdin)))'
+```
+
+Para conferir a origem da publicação de porta sem modificar Docker:
+
+```bash
+grep -n -A 3 'ports:' compose.yaml
+sudo docker inspect trab02_2026_2_12621cbs202_api --format '{{json .HostConfig.PortBindings}}'
+```
+
+O retorno de `/health` documentado foi `{"status":"ok","servico":"Cyber Risk Engine"}`. A verificação por HTTP comprova resposta **naquele instante**, não monitoramento completo do passado. A contagem do inventário pode mudar conforme os usuários fazem cadastros ou exclusões.
+
+### Publicação de porta: antes e depois
+
+**Antes, durante a comprovação de 24 horas:**
+
+```yaml
+ports:
+  - "127.0.0.1:2202:8000"
+```
+
+Essa configuração aceitava conexão apenas a partir do próprio servidor. Para abrir no navegador Windows, utilizávamos um **túnel SSH temporário**:
+
+```powershell
+ssh -N -L 18082:127.0.0.1:2202 12621CBS202@10.0.99.150
+```
+
+Nessa situação, o navegador do **mesmo computador onde o túnel estava aberto** usava `http://127.0.0.1:18082/ui/`. O túnel se encerra quando a conexão SSH é fechada ou a máquina local é desligada, **mas não reinicia o Docker no servidor**.
+
+**Depois, para permitir o acesso direto pela rede da faculdade:**
+
+```yaml
+ports:
+  - "10.0.99.150:2202:8000"
+```
+
+Um colega conseguiu abrir `http://10.0.99.150:2202/ui/` em seu próprio computador na rede da faculdade **sem túnel SSH individual**. O teste foi relatado durante a aula; logo em seguida, o **PC Windows do responsável apresentou uma tela azul**, impossibilitando a checagem final do Docker naquela sessão. A falha do PC local, por si só, não demonstra falha no servidor Linux; a verificação atual exige `sudo docker compose ps` e `/health`.
+
+> **Acesso e segurança:** o exemplo acima **não implementa login, perfis de usuário, autorização ou HTTPS**. Se um computador consegue alcançar `10.0.99.150:2202`, pode potencialmente acessar as rotas `POST`, `PUT`, `PATCH` e `DELETE`. Não publique essa configuração fora da rede autorizada nem use informações confidenciais. A política do servidor compartilhado e o controle de entrada da rede devem ser confirmados com a instituição; `ufw inactive` **não prova** que a porta esteja protegida por outro equipamento. Uma publicação por IP da interface não é uma lista de controle de acesso.
+
+### Características do container da Sprint 5
+
+A execução Linux utilizou imagem `python:3.14-slim` e medidas de contenção observadas durante os testes da Sprint 5:
+
+- processo executado como usuário não privilegiado `cyberrisk` (UID/GID `10001`);
+- capabilities Linux descartadas com `cap_drop: ALL` e `no-new-privileges`;
+- limites configurados de memória (`512 MiB`), CPU (`1`) e processos (`128`);
+- logs locais do Docker com rotação (`max-file: 3`), para reduzir crescimento sem limite;
+- `healthcheck` consultando `/health` e política `restart: unless-stopped`;
+- volume nomeado em `/dados` para manter SQLite separado da camada gravável do container.
+
+Essas medidas reduzem riscos de execução; **não são equivalentes a autenticação da API, isolamento completo entre usuários ou segurança de produção**. A configuração deve sempre ser conferida no `compose.yaml` efetivamente implantado.
+
+### Recriar apenas o container do projeto, se for realmente necessário
+
+Quando uma edição do `compose.yaml` for aprovada e validada, a publicação de porta pode ser aplicada com:
+
+```bash
+cd ~/trab02_2026_2_12621cbs202
+sudo docker compose config --quiet
+sudo docker compose up -d --no-build --no-deps api
+sudo docker compose ps
+```
+
+Esse comando pode **recriar o container** e reiniciar seu contador de tempo. **Não há motivo para executá-lo só para verificar saúde.** A evidência de 24 horas, já registrada em 18/11, permanece válida como registro histórico. Não use `docker compose down -v`, `docker system prune`, reboots ou mudanças de configuração global nesse servidor compartilhado.
+
+## Comprovação das 24 horas e evidências
+
+O relatório foi gerado no servidor Linux em **18/11/2026, às 21h29min22s (UTC−3)**:
+
+```text
+Arquivo: /home/12621CBS202/relatorio_s5_24h_20261118_212922.txt
+Projeto: Cyber Risk Engine
+Identificador: trab02_2026_2_12621cbs202
+Commit: 287d047
+Início UTC: 2026-11-18T00:11:20.685824323Z
+Início local: 17/11/2026 21:11:20 -03
+Tempo de execução: 24 horas e 18 minutos
+Reinicializações: 0
+Em execução: true
+Healthcheck: healthy
+HTTP /health: 200
+Resultado: CRITERIOS DE EXECUCAO DO CONTAINER ATENDIDOS
+```
+
+A captura exibiu o serviço `Up 24 hours (healthy)`, a publicação **naquele momento** `127.0.0.1:2202->8000/tcp` e o JSON `{"status":"ok","servico":"Cyber Risk Engine"}`. **A mudança para o IP da rede ocorreu depois desse relatório**; por isso, não se deve reescrever a evidência histórica para apresentar a porta como já pública durante a medição.
+
+A verificação utiliza o timestamp inicial do container, `RestartCount`, o resultado atual do `healthcheck`, a resposta HTTP atual e o status informado pelo Docker. **Ela sustenta o requisito de execução do container por mais de 24 horas sem reinícios registrados**, mas não é uma série temporal de requisições HTTP e não permite afirmar disponibilidade HTTP de 100% em cada segundo do intervalo.
+
+### Reproduzir a inspeção, somente leitura
+
+```bash
+cd ~/trab02_2026_2_12621cbs202
+date -Is
+sudo docker compose ps
+sudo docker inspect trab02_2026_2_12621cbs202_api --format 'Inicio={{.State.StartedAt}} Reinicializacoes={{.RestartCount}} Politica={{.HostConfig.RestartPolicy.Name}}'
+curl -fsS http://10.0.99.150:2202/health
+```
+
+**Atenção:** caso o container tenha sido recriado após mudar o Compose, a nova data de início **não invalida o relatório de 18/11**. Guarde o `.txt` e a captura daquele dia como evidências históricas. Eles não são enviados automaticamente ao repositório.
+
+### Copiar o relatório para o Windows
+
+No **PowerShell do computador Windows**, não dentro do SSH:
+
+```powershell
+scp 12621CBS202@10.0.99.150:/home/12621CBS202/relatorio_s5_24h_20261118_212922.txt "$HOME\Downloads\"
+```
+
+Guarde o `.txt` e a captura fora do servidor. Se quiser incluir evidências no GitHub, crie uma pasta `docs/evidencias/` e revise os arquivos para não divulgar credenciais, dados reais de usuários ou segredos da instituição. O arquivo não integra o repositório automaticamente.
+
+## Migração JSON → SQLite realizada no servidor
+
+Na primeira execução remota, a interface estava vazia porque o banco relacional do volume novo não tinha os ativos cadastrados anteriormente. **O arquivo `ativos.json` do Windows não é automaticamente sincronizado nem convertido pelo Docker.** Foi feita uma migração controlada para preservar o inventário anterior:
+
+1. No computador Windows, identificou-se a origem `ativos.json` com **6 ativos**.
+2. Foi utilizado `scripts/migrar_json_para_sqlite.py`, com `--origem`, `--destino` e `--backup-dir`, para gerar um **SQLite novo** e backup da origem JSON.
+3. A validação local resultou em **6 ativos, 7 vulnerabilidades, 7 associações ativo–vulnerabilidade e 2 dependências**, preservando os vínculos e o cálculo de risco do cenário migrado.
+4. O arquivo SQLite foi transferido por **SCP** para a conta do servidor. O hash **SHA-256** da origem e do arquivo transferido foi comparado para conferir a integridade da transferência.
+5. No servidor, o banco inicial vazio foi respaldado antes de qualquer substituição. O container da aplicação foi parado **apenas durante a restauração**, sem afetar os containers dos colegas.
+6. Um processo temporário validou a integridade do SQLite, chaves estrangeiras, revisão Alembic `bb919c9dadbb`, contagens e destino antes da substituição; em seguida o banco migrado foi colocado no volume com proprietário UID `10001` e permissões de leitura/escrita adequadas ao serviço.
+7. Reiniciou-se somente a aplicação (`sudo docker compose up -d --no-build --no-deps api`). A interface mostrou novamente os **6 ativos**, inclusive suas vulnerabilidades e dependências.
+
+Exemplo da **sintaxe da migração no Windows**, a executar só em ambiente de preparação/backup e com caminhos adequados:
+
+```powershell
+python -m scripts.migrar_json_para_sqlite --origem .\ativos.json --destino "$HOME\cyber_risk_migrado.db" --backup-dir "$HOME\backups_cyber_risk"
+```
+
+> **Não rode novamente essa migração sobre um banco de produção sem inspeção.** O comando acima cria um arquivo de destino separado, mas a importação/colocação no volume é uma operação sensível: precisa de backup SQLite consistente, integridade verificada e destino inspecionado. Não copie o arquivo SQLite enquanto houver gravação simultânea sem usar método de backup apropriado. Os valores 6/7/7/2 são da migração realizada em novembro, **não uma contagem garantida para execuções futuras**.
+
+O banco persistente restaurado no servidor está em `/dados/cyber_risk.db` dentro do volume `trab02_2026_2_12621cbs202_dados_api`; não faz parte do commit Git. O Alembic gerencia evolução de estrutura (esquema), enquanto o script de migração JSON → SQLite transforma **dados legados**. Essas são duas tarefas distintas.
+
+---
 
 ## Modelo matemático de risco
 
@@ -1220,7 +1391,7 @@ No ambiente Docker validado em **12/11/2026**, a API executou com `CYBER_RISK_ST
 - **Volume Docker:** mantém o banco além do ciclo de vida de um container específico.
 - **API FastAPI:** expõe os recursos por HTTP e devolve objetos JSON ao frontend. Uma resposta JSON **não significa** que os dados sejam armazenados em arquivo JSON.
 
-O conteúdo dos modelos ORM e a lista completa das tabelas não foram enviados nesta revisão. Por isso, esta documentação **não inventa nomes de classes, chaves estrangeiras ou estrutura de tabelas** além da tabela `ativos` comprovada pelo comando SQL.
+A migração da Sprint 5 verificou **seis ativos, sete vulnerabilidades, sete associações e duas dependências**, além de integridade e chaves estrangeiras. A definição de cada classe ORM e dos nomes de tabelas deve ser conferida diretamente nas migrações e no código atualizado; o README evita listar nomes de tabelas não observados nesta documentação.
 
 ### JSON e modo legado
 
@@ -1263,7 +1434,7 @@ O middleware da API acompanha alterações observadas em operações HTTP de suc
 
 Esses eventos permaneceram acessíveis **após a recriação do container**. O retorno da API mostrou o campo `hora` com timestamp UTC, por exemplo `2026-11-12T17:30:07.489354+00:00` para a atualização de tratamento.
 
-**Limitação importante:** as evidências recebidas comprovam que a consulta do Diário permaneceu disponível, mas **não identificam o mecanismo físico que guarda seus eventos na versão atual**. O README antigo documentava JSONL; confirme `api/diario_cacada.py` e a configuração de persistência para saber se isso continua verdadeiro antes de afirmar que o Diário está em SQL ou em JSONL.
+**Armazenamento do Diário:** no volume do servidor foi observado o arquivo `/dados/ativos_diario.jsonl` em paralelo ao SQLite `/dados/cyber_risk.db`; portanto o Diário possui suporte a **JSONL nessa implantação**, separado do banco de ativos. Os eventos consultados após recriar o container comprovaram persistência no cenário observado; o Diário **não é log inviolável nem registro de todas as operações feitas diretamente no banco**.
 
 O Diário não constitui auditoria imutável, não observa operações realizadas fora dos caminhos instrumentados e não comprova remediação real, identidade do operador ou disponibilidade por 24 horas.
 
@@ -1290,11 +1461,12 @@ O SQLite é um arquivo de banco de dados, mas **copiar o arquivo enquanto há gr
 
 | Ambiente | Armazenamento documentado | Observação |
 |---|---|---|
-| Docker atual validado | SQLite em `/dados/cyber_risk.db` | Variável observada: `CYBER_RISK_STORAGE=sqlite`. |
+| Docker local (12/11) | SQLite em `/dados/cyber_risk.db` | Variável observada: `CYBER_RISK_STORAGE=sqlite`; contagem histórica: 7 ativos. |
+| Servidor da faculdade (17–18/11) | SQLite em `/dados/cyber_risk.db` no volume `trab02_2026_2_12621cbs202_dados_api` | Inventário migrado: 6 ativos, 7 vulnerabilidades e 2 dependências. |
 | CLI original | JSON (`ativos.json`) | Documentação anterior; verificar código atualizado antes de assumir compatibilidade. |
 | Uvicorn local | Depende de configuração do ambiente | Modo e caminho efetivos devem ser conferidos antes de alterar dados. |
 
-O formato físico do Diário e os nomes exatos das variáveis de caminho do banco devem ser conferidos em `compose.yaml` e nos módulos de configuração. **Não foram deduzidos a partir do nome do arquivo**.
+No servidor da Sprint 5 foi observado **`/dados/ativos_diario.jsonl`** para eventos JSONL, ao lado de **`/dados/cyber_risk.db`** para o inventário SQLite. Para executar em outra máquina, confira as variáveis e caminhos efetivos no `compose.yaml` e na configuração da API; os caminhos do servidor não são automaticamente os mesmos do computador pessoal.
 
 ## Testes automatizados
 
@@ -1434,13 +1606,16 @@ cyber-risk-engine/
 ├── ativos.json                    # Arquivo da implementação original / CLI
 ├── main.py                        # Ponto de entrada da CLI
 ├── requirements.txt
-├── dockerfile
+├── Dockerfile (ou dockerfile)
+├── alembic.ini                    # Configuração das migrações SQL
+├── scripts/
+│   └── migrar_json_para_sqlite.py # Importação dos dados legados
 ├── compose.yaml
 ├── .dockerignore
 └── .gitignore
 ```
 
-A árvore acima representa os componentes já documentados na versão anterior. **Os novos módulos ORM/SQLAlchemy não foram anexados, portanto não foram adicionados à árvore com nomes presumidos.** O banco `/dados/cyber_risk.db` é um arquivo gerado no volume Docker, não um arquivo de código do repositório. O áudio opcional `frontend/assets/audio/laurence.mp3` não integra a distribuição pública.
+A árvore acima conserva os componentes documentados na versão anterior. Além dela, a Sprint 5 utilizou **`alembic.ini`, migrações Alembic e `scripts/migrar_json_para_sqlite.py`**. Os nomes exatos dos modelos ORM e diretórios de migração devem ser conferidos na árvore atual do GitHub, em vez de presumidos. O banco `/dados/cyber_risk.db` é gerado no volume Docker e **não deve ser versionado no Git**. O áudio opcional `frontend/assets/audio/laurence.mp3` não integra a distribuição pública.
 
 ## Diagnóstico e solução de problemas
 
@@ -1452,7 +1627,10 @@ Este guia reúne problemas encontrados durante o desenvolvimento e falhas típic
 | `running scripts is disabled` no PowerShell | Política de execução de scripts. | `Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned`; depois ative a `.venv`. |
 | A interface abre, mas a lista está vazia | Volume SQLite recém-criado ou API conectada a outro ambiente. | Consulte `GET /ativos` e `CYBER_RISK_STORAGE`; verifique caminho do banco e volume antes de qualquer importação. |
 | Os ativos de teste aparecem em `ativos.json` | Uma execução legada pode estar gravando JSON em vez do banco SQLite. | Confirme `CYBER_RISK_STORAGE`, o processo/porta e as configurações efetivas antes de continuar. |
-| A porta `8000` ou `8001` está ocupada | Outro servidor/container já está usando a porta. | Verifique processos e `docker compose ps`; escolha uma porta livre para testes locais. |
+| A porta `2202` ou `8001` está ocupada | Outro servidor/container está usando a porta do host. | Verifique `sudo docker compose ps`, `ss` e `docker compose config`; não altere portas de outros alunos. |
+| Funciona no servidor, mas não abre em outro PC | O Compose pode estar publicado apenas em `127.0.0.1`, ou há bloqueio de rede. | Confira `ports`, resposta `/health` e permissões da rede; não mexa em firewall global sem autorização. |
+| Após mudar o Compose, `StartedAt` passou a ser recente | O container foi recriado para aplicar mapeamento de porta. | O contador reinicia; preserve o relatório histórico das 24 horas. |
+| Tela azul no Windows durante a aula | Falha do computador cliente, não necessariamente do servidor Linux. | Entre novamente por SSH e consulte `sudo docker compose ps` e `/health`. |
 | `docker compose config` funciona, mas `build` não conecta | Docker Desktop/Engine indisponível. | Abra Docker Desktop; confira `docker info` e `docker version`. |
 | `Up (healthy)` não aparece | Startup, dependência ou healthcheck com problema. | `docker compose ps` e `docker compose logs --tail=100 api`. |
 | `/ui/` não abre dentro do Docker | Frontend não copiado na imagem ou build antigo. | Verifique `COPY frontend/ ./frontend/` e rode `docker compose up --build -d`. |
@@ -1481,11 +1659,11 @@ docker compose ps
 docker compose logs --tail=100 api
 
 # API: saúde, inventário e histórico
-Invoke-RestMethod 'http://127.0.0.1:8000/health'
-$ativos = Invoke-RestMethod 'http://127.0.0.1:8000/ativos'
+Invoke-RestMethod 'http://127.0.0.1:2202/health'
+$ativos = Invoke-RestMethod 'http://127.0.0.1:2202/ativos'
 $ativos.Count
 $ativos | Select-Object id, nome
-Invoke-RestMethod 'http://127.0.0.1:8000/diario?limite=20'
+Invoke-RestMethod 'http://127.0.0.1:2202/diario?limite=20'
 ```
 
 ### Recuperação do volume Docker: cuidados
@@ -1510,7 +1688,7 @@ Invoke-RestMethod 'http://127.0.0.1:8000/diario?limite=20'
 
 **Por que um risco supera 10, se a escala CVSS é de 0 a 10?** O modelo soma severidades e propagação; o resultado efetivo é uma pontuação diferente do CVSS individual.
 
-**O que ocorre se o servidor reiniciar?** O banco SQLite pode ser reaberto quando seu arquivo é preservado no volume. O Diário também permaneceu acessível nos testes; seu formato interno ainda precisa de verificação no código. O restart não prova alta disponibilidade.
+**O que ocorre se o servidor reiniciar?** O banco SQLite pode ser reaberto quando seu arquivo é preservado no volume, e o histórico JSONL observado também depende da preservação do volume. O restart não prova alta disponibilidade nem elimina a necessidade de conferir integridade e saúde da aplicação.
 
 **Por que aparecem menos eventos no Diário do que ativos?** O inventário representa um estado; o Diário representa eventos observados depois da sua ativação. Os totais têm significados diferentes.
 
@@ -1522,7 +1700,21 @@ Invoke-RestMethod 'http://127.0.0.1:8000/diario?limite=20'
 
 **O player de música faz parte dos requisitos de segurança?** Não. É um recurso de apresentação temática opcional; a aplicação não depende dele para realizar operações.
 
-**O Diário prova execução por 24 horas?** Não. Uma evidência de disponibilidade exige medições periódicas com timestamps e resultados de sucesso/falha, conforme as orientações da Sprint 5.
+**O Diário prova execução por 24 horas?** Não. Para a Sprint 5, registrou-se um relatório separado do Docker em 18/11/2026 (24h18, zero reinicializações, `healthy`, HTTP 200). Ele evidencia o tempo de execução do container, mas **não mede cada instante da disponibilidade HTTP**.
+
+**O Docker do servidor parou quando o computador Windows apresentou tela azul?** Não necessariamente. O container roda no servidor Linux independente; somente uma nova consulta a `sudo docker compose ps` e `/health` informa seu estado atual.
+
+**Por que um colega conseguiu abrir a aplicação sem túnel?** Porque o mapeamento de porta no servidor foi alterado de `127.0.0.1:2202:8000` para `10.0.99.150:2202:8000`, permitindo que outros computadores com conectividade de rede tentem acessar a porta.
+
+**A porta 2202 é a mesma porta interna do FastAPI?** Não. O Docker encaminha a porta **2202 do host** para **8000 dentro do container**. A numeração externa atende à padronização da atividade; o Uvicorn permanece em 8000 internamente.
+
+**Como demonstrar as 24 horas?** Apresente o relatório e a captura de 18/11/2026: início 17/11 às 21h11, verificação 18/11 às 21h29, 24h18, `RestartCount=0`, `healthy` e HTTP 200. A publicação no IP da rede foi realizada **depois** dessa evidência.
+
+**Os 71 testes foram executados no banco SQLite da faculdade?** Não. Os 71 testes automatizados passaram em um **container isolado com JSON** em 12/11. SQLite foi validado por operações manuais, migração, verificações de integridade e consultas; são evidências complementares, não intercambiáveis.
+
+**O servidor continua funcionando hoje?** O último estado documentado está associado às verificações e testes de novembro. Para confirmar agora, execute os comandos de consulta no servidor; não presuma disponibilidade atual apenas pelo relatório antigo.
+
+**Por que o README explica a diferença entre o Compose no servidor e no GitHub?** Porque a alteração feita diretamente no servidor **não vira commit automaticamente**. É necessário transportar a mudança para a cópia de trabalho apropriada, revisar `git diff`, realizar commit e `git push`, respeitando a política do repositório. Nunca envie senhas, backups privados ou arquivos `.db` com dados para o Git.
 
 ## Glossário técnico
 
@@ -1559,6 +1751,12 @@ Invoke-RestMethod 'http://127.0.0.1:8000/diario?limite=20'
 | **JSONL** | JSON Lines; um objeto JSON por linha, conveniente para eventos. |
 | **Persistência atômica** | Técnica de gravar temporariamente e substituir o arquivo de destino. |
 | **Container** | Processo isolado executado com filesystem e dependências de uma imagem. |
+| **Alembic** | Ferramenta de migrações de esquema SQL utilizada com SQLAlchemy. |
+| **SCP/SSH** | Acesso seguro ao servidor e cópia de arquivos pela conexão criptografada. |
+| **Túnel SSH** | Encaminhamento temporário de uma porta local para uma porta no servidor por SSH. |
+| **Mapeamento de porta** | Ligação entre porta do host (2202) e porta interna do container (8000). |
+| **SHA-256** | Função hash usada para comparar integridade do arquivo SQLite durante transferência. |
+| **RestartCount** | Número de reinicializações registradas pelo Docker para um container. |
 | **Imagem Docker** | Pacote de filesystem/configuração usado para criar containers. |
 | **Volume Docker** | Armazenamento persistente, independente da camada gravável do container. |
 | **Healthcheck** | Verificação automática de resposta do serviço, aqui em `/health`. |
@@ -1580,9 +1778,38 @@ O projeto foi desenvolvido para **aprendizado, demonstração e avaliação acad
 4. **Modelo de risco simplificado:** pesos e severidades representam uma pontuação acadêmica, não uma análise quantitativa completa de ameaças, probabilidade e impacto de negócio.
 5. **NVD:** pesquisa condicionada à janela de 120 dias, rede e disponibilidade da API externa.
 6. **Mídia temática:** o áudio não acompanha o repositório/imagem por restrições de distribuição.
-7. **Servidor remoto:** implantação na infraestrutura da faculdade e monitoramento durante 24 horas aguardam os requisitos oficiais da Sprint 5.
+7. **Servidor remoto:** implantação e comprovação do tempo de execução **realizadas em novembro de 2026** (24h18 e zero reinicializações). A operação por acesso livre à rede é temporária/demonstrativa, sem autenticação, autorização e HTTPS; monitoramento contínuo de disponibilidade, observabilidade e controle de acesso ainda seriam necessários em produção.
 
-Evoluções possíveis incluem autenticação, refinamento da persistência SQLAlchemy/SQLite, importação controlada do JSON legado, trilha de auditoria robusta, controles de concorrência, **execução da suíte automatizada em banco SQLite de teste migrado** e métricas de disponibilidade. Esses recursos **ainda precisam de desenvolvimento ou validação adicional**, conforme o caso.
+Evoluções possíveis incluem autenticação e autorização por perfis, HTTPS/proxy reverso, limitação por rede autorizada, sincronização da versão do Compose do servidor com o GitHub, trilha de auditoria robusta, controles de concorrência, **execução da suíte automatizada em banco SQLite de teste migrado** e monitoramento HTTP contínuo. A **migração JSON → SQLite já foi realizada** para o inventário utilizado no servidor, mas um processo genérico de migração/rollback para qualquer ambiente ainda pode exigir testes adicionais.
+
+## Preparação para a entrega e apresentação (novembro de 2026)
+
+O enunciado do **Trabalho 2 — Sprints 3, 4 e 5** estabelece entrega do código no repositório até **27/11/2026** e apresentação individual de **cinco minutos**, seguida de perguntas sobre o código e o modelo de risco. A apresentação prevista é em **30/11/2026**. O README é material de apoio; o enunciado não exige documento separado. Confira eventuais orientações adicionais do tutor.
+
+### Roteiro sugerido de 5 minutos
+
+| Tempo | Demonstração | O que explicar |
+|---|---|---|
+| 0:00–0:40 | Objetivo, UI e inventário | Evolução do CRUD procedural para POO; subclasses de `Ativo`. |
+| 0:40–1:30 | Vulnerabilidades, NVD e tratamento | CVE/CWE/CVSS, associação manual e estados; CVSS é severidade. |
+| 1:30–2:40 | Dependências e análise de risco | `M`, `v`, `b=Mv`, `A` e solução de `(I-A)x=b`; risco próprio vs. efetivo. |
+| 2:40–3:30 | Persistência SQLite e Diário | SQLAlchemy, Alembic, volume, JSON legado e migração de seis ativos. |
+| 3:30–4:30 | Docker e Sprint 5 | Porta `2202→8000`, usuário não root, logs/healthcheck, evidência 24h18 sem reinícios. |
+| 4:30–5:00 | Limitações e conclusão | 71 testes JSON isolados, validações SQLite separadas, acesso pela rede e ausência de autenticação. |
+
+### Checklist antes de entregar
+
+- [ ] Validar que **o README e o `compose.yaml` do GitHub** correspondem ao estado escolhido para a entrega. A mudança feita apenas no servidor **não é automaticamente enviada ao GitHub**.
+- [ ] Conferir se o nome da branch final, o commit e os arquivos publicados estão corretos; o relatório histórico registrou o commit `287d047`, **não uma confirmação de commit da alteração posterior de porta**.
+- [ ] Verificar se `docker compose config` é válido **na máquina onde será executado**. O IP da faculdade `10.0.99.150` não deve ser aplicado literalmente ao Docker local fora daquela rede.
+- [ ] Guardar relatório e print das 24 horas e executar uma verificação **atual** de `sudo docker compose ps` e `/health` antes da apresentação.
+- [ ] Preparar um pequeno inventário/cenário demonstrativo. Não alterar dados reais dos colegas; preferir operações reversíveis e IDs de teste.
+- [ ] Treinar a diferença entre **CVE, CWE, CVSS, risco próprio e risco efetivo** e justificar a verificação de invertibilidade.
+- [ ] Explicar abertamente a limitação de acesso sem autenticação; não afirmar que a solução é segura para a internet.
+
+**Atenção à exigência de formato:** o enunciado aceita arquivo ou banco SQL e menciona JSON como formato de armazenamento. O ambiente de entrega utiliza **SQLite relacional**, enquanto JSON continua sendo utilizado para tráfego HTTP e em modo legado/testes. Se o tutor interpretar o requisito 2 como exigência de **array JSON persistido mesmo no modo SQL**, essa interpretação precisa ser alinhada: não trate a resposta JSON da API como prova de que o arquivo SQLite é JSON.
+
+---
 
 ## Identidade visual e uso de mídia
 
