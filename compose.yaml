@@ -11,9 +11,9 @@ services:
       dockerfile: Dockerfile
 
     # Porta externa 2202, porta interna 8000
-    # Acesso restrito ao servidor durante os testes
+    # Acesso pela interface de rede da faculdade
     ports:
-      - "127.0.0.1:2202:8000"
+      - "10.0.99.150:2202:8000"
 
     environment:
       CYBER_RISK_DATA: /dados/ativos.json
